@@ -13,8 +13,7 @@ st.set_page_config(
 # 2. PROTOCOLO DE CONEXIÓN CON SUPABASE
 SUPABASE_URL = "https://cwpispkqdphhiibaqnkb.supabase.co"
 # Llave anon completa extraída de tus parámetros de configuración
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpcCI6IiIsInN1cGFiYXNlLmNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTcyOTYyOTgsImV4cCI6MjAzMjg3MjI5OH0.eyJUb2tlbl9SZWN1c2VkIjpmYWxzZX0"
-
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3cGlzcGtxZHBoaGlpYmFxbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2MTAxNDIsImV4cCI6MjA5NjE4NjE0Mn0.oXDl9yU5BoYdH1WpVbJWHyVs8w6Lu5F9AxUxJnFl8CE"
 @st.cache_resource
 def conectar_base_datos():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
