@@ -150,7 +150,6 @@ elif opcion == "❌ Eliminar Registro (Delete)":
                 st.error("No se encontró ningún alumno con ese DNI.")
         except Exception as e:
             st.error(f"Error: {e}")
-
 # ==========================================
 # 5. PUNTO 4: VISUALIZACIONES GRÁFICAS TOTALES
 # ==========================================
@@ -163,12 +162,21 @@ elif opcion == "📊 Reportes y Gráficos (Punto 4)":
             # Convertimos todos los ítems de la base de datos a un DataFrame
             df = pd.DataFrame(response.data)
             
+            # --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
+            # Forzamos a que la columna EDAD se convierta a números para evitar el error
+            df['EDAD'] = pd.to_numeric(df['EDAD'], errors='coerce')
+            
             # --- ANÁLISIS DE DNI Y EDAD (Métricas rápidas) ---
             col1, col2 = st.columns(2)
             with col1:
                 st.metric(label="👥 Cantidad Total de DNI Únicos", value=df['DNI'].nunique())
             with col2:
-                st.metric(label="📈 Edad Promedio del Alumnado", value=f"{df['EDAD'].mean():.1f} años")
+                # Calculamos el promedio ignorando si hay algún dato vacío
+                edad_promedio = df['EDAD'].mean()
+                if pd.notna(edad_promedio):
+                    st.metric(label="📈 Edad Promedio del Alumnado", value=f"{edad_promedio:.1f} años")
+                else:
+                    st.metric(label="📈 Edad Promedio del Alumnado", value="N/A")
             
             st.divider()
             
@@ -186,20 +194,28 @@ elif opcion == "📊 Reportes y Gráficos (Punto 4)":
             
             # --- ANÁLISIS DE EDAD (Gráfico de Barras) ---
             st.markdown("#### 📊 Distribución de Alumnos por Ítem: EDAD")
-            df_edad = df['EDAD'].value_counts().reset_index()
+            
+            # Eliminamos filas que no tengan edad válida para el gráfico de barras
+            df_edad_filtrado = df.dropna(subset=['EDAD'])
+            df_edad = df_edad_filtrado['EDAD'].value_counts().reset_index()
             df_edad.columns = ['Edad', 'Número de Alumnos']
+            
+            # Nos aseguramos de que la edad se muestre como entero en el eje X
+            df_edad['Edad'] = df_edad['Edad'].astype(int)
             df_edad = df_edad.sort_values(by='Edad')
             
             fig_bar = px.bar(df_edad, x='Edad', y='Número de Alumnos', 
                              labels={'Edad': 'Edad Registrada', 'Número de Alumnos': 'Cantidad de Estudiantes'},
                              color='Número de Alumnos', color_continuous_scale='Tealgrn')
+            
+            # Forzamos a que el eje X muestre los números uno por uno (como tu gráfico base)
+            fig_bar.update_layout(xaxis=dict(type='category'))
             st.plotly_chart(fig_bar, use_container_width=True)
             
             st.divider()
             
             # --- ANÁLISIS DE NOMBRES Y APELLIDOS (Top Informativo) ---
             st.markdown("#### 📝 Listado Analítico de Control (Nombres y Apellidos)")
-            # Creamos una columna temporal combinando Apellidos y Nombres
             df['Nombre Completo'] = df['APELLIDO_PAT'] + " " + df['NOMBRE']
             df_lista = df[['DNI', 'Nombre Completo', 'SEXO', 'EDAD']].sort_values(by='Nombre Completo')
             st.dataframe(df_lista, width="stretch")
@@ -208,3 +224,4 @@ elif opcion == "📊 Reportes y Gráficos (Punto 4)":
             st.warning("No hay datos en la base de datos para generar los gráficos.")
     except Exception as e:
         st.error(f"Error al generar las visualizaciones: {e}")
+
