@@ -10,18 +10,18 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. PROTOCOLO DE CONEXIÓN CON SUPABASE
-SUPABASE_URL = "https://cwpispkqdphhiibaqnkb.supabase.co"
-# Llave anon completa extraída de tus parámetros de configuración
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3cGlzcGtxZHBoaGlpYmFxbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2MTAxNDIsImV4cCI6MjA5NjE4NjE0Mn0.oXDl9yU5BoYdH1WpVbJWHyVs8w6Lu5F9AxUxJnFl8CE"
-@st.cache_resource
-def conectar_base_datos():
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
-
+# 2. PROTOCOLO DE CONEXIÓN CON SUPABASE (USANDO SECRETS)
 try:
+    SUPABASE_URL = st.secrets["supabase"]["url"]
+    SUPABASE_KEY = st.secrets["supabase"]["key"]
+    
+    @st.cache_resource
+    def conectar_base_datos():
+        return create_client(SUPABASE_URL, SUPABASE_KEY)
+        
     supabase = conectar_base_datos()
 except Exception as e:
-    st.error(f"Error de enlace con el servidor backend: {e}")
+    st.error(f"Error de enlace con las credenciales seguras: {e}")
 
 # 3. ENCABEZADOS DE LA PÁGINA
 st.title("🎓 Control de Alumnos - Panel Web")
@@ -128,7 +128,7 @@ elif menu_operacion == "🔄 Actualizar Datos (Update)":
             st.error(f"Error en la edición: {error}")
 
 # ==========================================
-# MÓDULO 4: DELETE (ELIMINAR ALUMNO)
+# MÓAULO 4: DELETE (ELIMINAR ALUMNO)
 # ==========================================
 elif menu_operacion == "❌ Eliminar Registro (Delete)":
     st.subheader("Dar de Baja a un Alumno")
