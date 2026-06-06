@@ -46,7 +46,7 @@ menu_operacion = st.sidebar.selectbox(
 if menu_operacion == "📁 Ver Alumnos (Read)":
     st.subheader("Lista Completa de Alumnos")
     try:
-        solicitud = supabase.table("ALUMNOS").select("*").order("APELLIDO_PAT").execute()
+        solicitud = supabase.table("ALUMNOS").select("*").execute()
         if solicitud.data:
             st.dataframe(solicitud.data, use_container_width=True)
             st.info(f"Total de alumnos registrados: {len(solicitud.data)}")
@@ -75,7 +75,7 @@ elif menu_operacion == "➕ Registrar Nuevo (Create)":
         
         if btn_enviar:
             if not txt_dni or not txt_pat or not txt_nom:
-                st.error("Campos obligatorios incompletos (DNI, Apellido Paterno y Nombres).")
+                st.error("Campos obligatorios incompletos.")
             else:
                 try:
                     payload = {
@@ -128,7 +128,7 @@ elif menu_operacion == "🔄 Actualizar Datos (Update)":
             st.error(f"Error en la edición: {error}")
 
 # ==========================================
-# MÓAULO 4: DELETE (ELIMINAR ALUMNO)
+# MÓDULO 4: DELETE (ELIMINAR ALUMNO)
 # ==========================================
 elif menu_operacion == "❌ Eliminar Registro (Delete)":
     st.subheader("Dar de Baja a un Alumno")
@@ -138,11 +138,11 @@ elif menu_operacion == "❌ Eliminar Registro (Delete)":
             solicitud = supabase.table("ALUMNOS").select("*").eq("DNI", eliminar_dni).execute()
             if solicitud.data:
                 item = solicitud.data[0]
-                st.warning(f"¿Desea eliminar permanentemente a: {item['NOMBRE']} {item['APELLIDO_PAT']}?")
+                st.warning(f"¿Desea eliminar a: {item['NOMBRE']} {item['APELLIDO_PAT']}?")
                 check_seguridad = st.checkbox("Confirmo la eliminación física del registro.")
                 if st.button("Eliminar definitivamente") and check_seguridad:
                     supabase.table("ALUMNOS").delete().eq("DNI", eliminar_dni).execute()
-                    st.success("El registro ha sido removido del sistema cloud.")
+                    st.success("El registro ha sido removido.")
             else:
                 st.error("No se encontró ningún registro coincidente.")
         except Exception as error:
@@ -167,34 +167,12 @@ elif menu_operacion == "📊 Reportes y Gráficos (Punto 4)":
                 st.metric(label="📈 Edad Promedio del Alumnado", value=f"{promedio:.1f} años" if pd.notna(promedio) else "N/A")
             
             st.divider()
-            
             st.markdown("#### 🔄 Distribución de Alumnos por Ítem: SEXO")
             resumen_sexo = df_datos['SEXO'].value_counts().reset_index()
             resumen_sexo.columns = ['Sexo', 'Total Alumnos']
             
-            grafico_tarta = px.pie(
-                resumen_sexo, values='Total Alumnos', names='Sexo',
-                color='Sexo', color_discrete_map={'M':'#3498db', 'F':'#e74c3c', 'O':'#9b59b6'},
-                hole=0.2
-            )
+            grafico_tarta = px.pie(resumen_sexo, values='Total Alumnos', names='Sexo')
             st.plotly_chart(grafico_tarta, use_container_width=True)
-            
-            st.divider()
-            
-            st.markdown("#### 📊 Distribución de Alumnos por Ítem: EDAD")
-            df_limpio = df_datos.dropna(subset=['EDAD'])
-            resumen_edad = df_limpio['EDAD'].value_counts().reset_index()
-            resumen_edad.columns = ['Edad', 'Número de Alumnos']
-            resumen_edad['Edad'] = resumen_edad['Edad'].astype(int)
-            resumen_edad = resumen_edad.sort_values(by='Edad')
-            
-            grafico_barras = px.bar(
-                resumen_edad, x='Edad', y='Número de Alumnos', 
-                color='Número de Alumnos', color_continuous_scale='Tealgrn'
-            )
-            grafico_barras.update_layout(xaxis=dict(type='category'))
-            st.plotly_chart(grafico_barras, use_container_width=True)
-            
         else:
             st.warning("No hay registros suficientes para estructurar las gráficas.")
     except Exception as error:
