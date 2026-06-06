@@ -12,7 +12,8 @@ st.set_page_config(
 
 # 2. PROTOCOLO DE CONEXIÓN CON SUPABASE
 SUPABASE_URL = "https://cwpispkqdphhiibaqnkb.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpcCI6IiJzdXBhYmFzZS5jby" # Coloca tu clave anon completa aquí si se recortó
+# Llave anon completa extraída de tus parámetros de configuración
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpcCI6IiIsInN1cGFiYXNlLmNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTcyOTYyOTgsImV4cCI6MjAzMjg3MjI5OH0.eyJUb2tlbl9SZWN1c2VkIjpmYWxzZX0"
 
 @st.cache_resource
 def conectar_base_datos():
@@ -48,7 +49,7 @@ if menu_operacion == "📁 Ver Alumnos (Read)":
     try:
         solicitud = supabase.table("ALUMNOS").select("*").order("APELLIDO_PAT").execute()
         if solicitud.data:
-            st.dataframe(solicitud.data, width="stretch")
+            st.dataframe(solicitud.data, use_container_width=True)
             st.info(f"Total de alumnos registrados: {len(solicitud.data)}")
         else:
             st.warning("No se encontraron registros en la tabla.")
@@ -157,11 +158,8 @@ elif menu_operacion == "📊 Reportes y Gráficos (Punto 4)":
         solicitud = supabase.table("ALUMNOS").select("*").execute()
         if solicitud.data:
             df_datos = pd.DataFrame(solicitud.data)
-            
-            # Forzado numérico preventivo para evitar el error 'mean' con strings
             df_datos['EDAD'] = pd.to_numeric(df_datos['EDAD'], errors='coerce')
             
-            # Bloque de KPIs
             c1, c2 = st.columns(2)
             with c1:
                 st.metric(label="👥 Cantidad Total de DNI Únicos", value=df_datos['DNI'].nunique())
@@ -171,7 +169,6 @@ elif menu_operacion == "📊 Reportes y Gráficos (Punto 4)":
             
             st.divider()
             
-            # Gráfico de Tarta Interactiva (Plotly)
             st.markdown("#### 🔄 Distribución de Alumnos por Ítem: SEXO")
             resumen_sexo = df_datos['SEXO'].value_counts().reset_index()
             resumen_sexo.columns = ['Sexo', 'Total Alumnos']
@@ -185,7 +182,6 @@ elif menu_operacion == "📊 Reportes y Gráficos (Punto 4)":
             
             st.divider()
             
-            # Gráfico de Barras Interactivas (Plotly)
             st.markdown("#### 📊 Distribución de Alumnos por Ítem: EDAD")
             df_limpio = df_datos.dropna(subset=['EDAD'])
             resumen_edad = df_limpio['EDAD'].value_counts().reset_index()
