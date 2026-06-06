@@ -11,9 +11,9 @@ st.set_page_config(
 )
 
 # --- CONEXIÓN A SUPABASE ---
-# REEMPLAZA CON TUS CREDENCIALES REALES
+# NOTA: Tus llaves reales ya están configuradas en tu archivo local
 SUPABASE_URL = "https://cwpispkqdphhiibaqnkb.supabase.co"
-SUPABASE_KEY = "tu-api-key-anon-super-larga"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpcCI6IiJzdXBhYmFzZS5jby" # Coloca tu clave real aquí
 
 @st.cache_resource
 def init_connection():
@@ -152,39 +152,57 @@ elif opcion == "❌ Eliminar Registro (Delete)":
             st.error(f"Error: {e}")
 
 # ==========================================
-# 5. PUNTO 4: VISUALIZACIONES GRÁFICAS
+# 5. PUNTO 4: VISUALIZACIONES GRÁFICAS TOTALES
 # ==========================================
 elif opcion == "📊 Reportes y Gráficos (Punto 4)":
-    st.subheader("Estadísticas y Gráficos del Alumnado")
+    st.subheader("Métricas y Estadísticas con todos los Ítems Registrados")
     
     try:
         response = supabase.table("ALUMNOS").select("*").execute()
         if response.data:
+            # Convertimos todos los ítems de la base de datos a un DataFrame
             df = pd.DataFrame(response.data)
             
-            # --- MUESTRA LOS DOS GRÁFICOS SOLICITADOS ---
+            # --- ANÁLISIS DE DNI Y EDAD (Métricas rápidas) ---
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric(label="👥 Cantidad Total de DNI Únicos", value=df['DNI'].nunique())
+            with col2:
+                st.metric(label="📈 Edad Promedio del Alumnado", value=f"{df['EDAD'].mean():.1f} años")
             
-            # 1. Gráfico de Pastel (Distribución por Sexo)
-            st.markdown("#### 🔄 Distribución por Sexo")
+            st.divider()
+            
+            # --- ANÁLISIS DE SEXO (Gráfico de Pastel) ---
+            st.markdown("#### 🔄 Distribución de Alumnos por Ítem: SEXO")
             df_sexo = df['SEXO'].value_counts().reset_index()
-            df_sexo.columns = ['Sexo', 'Cantidad']
+            df_sexo.columns = ['Sexo', 'Total Alumnos']
             
-            fig_pie = px.pie(df_sexo, values='Cantidad', names='Sexo',
-                             color='Sexo', color_discrete_map={'M':'#3498db', 'F':'#e74c3c', 'O':'#9b59b6'})
+            fig_pie = px.pie(df_sexo, values='Total Alumnos', names='Sexo',
+                             color='Sexo', color_discrete_map={'M':'#3498db', 'F':'#e74c3c', 'O':'#9b59b6'},
+                             hole=0.2)
             st.plotly_chart(fig_pie, use_container_width=True)
             
-            st.write("---")
+            st.divider()
             
-            # 2. Gráfico de Barras (Cantidad de Alumnos por Edad)
-            st.markdown("#### 📊 Cantidad de Alumnos por Edad")
+            # --- ANÁLISIS DE EDAD (Gráfico de Barras) ---
+            st.markdown("#### 📊 Distribución de Alumnos por Ítem: EDAD")
             df_edad = df['EDAD'].value_counts().reset_index()
-            df_edad.columns = ['Edad', 'Cantidad']
+            df_edad.columns = ['Edad', 'Número de Alumnos']
             df_edad = df_edad.sort_values(by='Edad')
             
-            fig_bar = px.bar(df_edad, x='Edad', y='Cantidad', 
-                             labels={'Edad': 'Edad', 'Cantidad': 'Número de Alumnos'},
-                             color_discrete_sequence=['#4cb0a9'])
+            fig_bar = px.bar(df_edad, x='Edad', y='Número de Alumnos', 
+                             labels={'Edad': 'Edad Registrada', 'Número de Alumnos': 'Cantidad de Estudiantes'},
+                             color='Número de Alumnos', color_continuous_scale='Tealgrn')
             st.plotly_chart(fig_bar, use_container_width=True)
+            
+            st.divider()
+            
+            # --- ANÁLISIS DE NOMBRES Y APELLIDOS (Top Informativo) ---
+            st.markdown("#### 📝 Listado Analítico de Control (Nombres y Apellidos)")
+            # Creamos una columna temporal combinando Apellidos y Nombres
+            df['Nombre Completo'] = df['APELLIDO_PAT'] + " " + df['NOMBRE']
+            df_lista = df[['DNI', 'Nombre Completo', 'SEXO', 'EDAD']].sort_values(by='Nombre Completo')
+            st.dataframe(df_lista, width="stretch")
             
         else:
             st.warning("No hay datos en la base de datos para generar los gráficos.")
