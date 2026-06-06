@@ -1,5 +1,7 @@
 import streamlit as st
 from supabase import create_client, Client
+import pandas as pd
+import plotly.express as px
 
 # --- CONFIGURACIÓN DE LA PÁGINA WEB ---
 st.set_page_config(
@@ -9,9 +11,9 @@ st.set_page_config(
 )
 
 # --- CONEXIÓN A SUPABASE ---
+# REEMPLAZA CON TUS CREDENCIALES REALES
 SUPABASE_URL = "https://cwpispkqdphhiibaqnkb.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3cGlzcGtxZHBoaGlpYmFxbmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2MTAxNDIsImV4cCI6MjA5NjE4NjE0Mn0.oXDl9yU5BoYdH1WpVbJWHyVs8w6Lu5F9AxUxJnFl8CE"
-
+SUPABASE_KEY = "tu-api-key-anon-super-larga"
 
 @st.cache_resource
 def init_connection():
@@ -24,13 +26,19 @@ except Exception as e:
 
 # --- TÍTULO DE LA APLICACIÓN WEB ---
 st.title("🎓 Control de Alumnos - Panel Web")
-st.markdown("Mantenimiento en tiempo real conectado a **Supabase**.")
+st.markdown("Mantenimiento y Analítica en tiempo real conectado a **Supabase**.")
 st.divider()
 
 # --- MENÚ LATERAL DE NAVEGACIÓN ---
 opcion = st.sidebar.selectbox(
-    "Selecciona una Operación CRUD",
-    ["📁 Ver Alumnos (Read)", "➕ Registrar Nuevo (Create)", "🔄 Actualizar Datos (Update)", "❌ Eliminar Registro (Delete)"]
+    "Selecciona una Operación",
+    [
+        "📁 Ver Alumnos (Read)", 
+        "➕ Registrar Nuevo (Create)", 
+        "🔄 Actualizar Datos (Update)", 
+        "❌ Eliminar Registro (Delete)",
+        "📊 Reportes y Gráficos (Punto 4)"
+    ]
 )
 
 # ==========================================
@@ -38,11 +46,9 @@ opcion = st.sidebar.selectbox(
 # ==========================================
 if opcion == "📁 Ver Alumnos (Read)":
     st.subheader("Lista Completa de Alumnos")
-    
     try:
         response = supabase.table("ALUMNOS").select("*").order("APELLIDO_PAT").execute()
         if response.data:
-            # Mostramos los datos en una tabla web interactiva nativa de Streamlit
             st.dataframe(response.data, width="stretch")
             st.info(f"Total de alumnos registrados: {len(response.data)}")
         else:
@@ -55,7 +61,6 @@ if opcion == "📁 Ver Alumnos (Read)":
 # ==========================================
 elif opcion == "➕ Registrar Nuevo (Create)":
     st.subheader("Formulario de Registro")
-    
     with st.form("form_registro", clear_on_submit=True):
         dni = st.text_input("DNI (8 dígitos):", max_chars=8)
         col1, col2 = st.columns(2)
@@ -67,7 +72,6 @@ elif opcion == "➕ Registrar Nuevo (Create)":
             sexo = st.selectbox("Sexo:", ["M", "F", "O"])
             
         edad = st.number_input("Edad:", min_value=0, max_value=120, value=18, step=1)
-        
         btn_guardar = st.form_submit_button("Guardar Alumno", type="primary")
         
         if btn_guardar:
@@ -86,38 +90,30 @@ elif opcion == "➕ Registrar Nuevo (Create)":
                     supabase.table("ALUMNOS").insert(nuevo_alumno).execute()
                     st.success(f"¡Alumno {nombre} registrado con éxito!")
                 except Exception as e:
-                    st.error(f"No se pudo registrar. Verifique las restricciones (Ej: DNI único).\n\nDetalle: {e}")
+                    st.error(f"No se pudo registrar: {e}")
 
 # ==========================================
 # 3. UPDATE: ACTUALIZAR DATOS
 # ==========================================
 elif opcion == "🔄 Actualizar Datos (Update)":
     st.subheader("Actualizar Información de Alumno")
-    
     dni_buscar = st.text_input("Ingrese el DNI del alumno a modificar:")
-    
     if dni_buscar:
         try:
             response = supabase.table("ALUMNOS").select("*").eq("DNI", dni_buscar).execute()
             if response.data:
                 alumno = response.data[0]
                 st.success("Alumno encontrado. Modifique los campos necesarios:")
-                
-                # Cargamos los datos actuales en el formulario web
                 with st.form("form_actualizar"):
                     nuevo_pat = st.text_input("Apellido Paterno:", value=alumno.get("APELLIDO_PAT", ""))
                     nuevo_mat = st.text_input("Apellido Materno:", value=alumno.get("APELLIDO_MAT", "") or "")
                     nuevo_nom = st.text_input("Nombres:", value=alumno.get("NOMBRE", ""))
-                    
-                    # Buscamos el índice actual del sexo para dejarlo preseleccionado
                     lista_sexo = ["M", "F", "O"]
                     idx_sexo = lista_sexo.index(alumno.get("SEXO", "M")) if alumno.get("SEXO") in lista_sexo else 0
                     nuevo_sexo = st.selectbox("Sexo:", lista_sexo, index=idx_sexo)
-                    
                     nueva_edad = st.number_input("Edad:", min_value=0, max_value=120, value=int(alumno.get("EDAD", 18)))
                     
                     btn_actualizar = st.form_submit_button("Actualizar Datos", type="primary")
-                    
                     if btn_actualizar:
                         datos_modificados = {
                             "APELLIDO_PAT": nuevo_pat.strip(),
@@ -127,38 +123,70 @@ elif opcion == "🔄 Actualizar Datos (Update)":
                             "EDAD": int(nueva_edad)
                         }
                         supabase.table("ALUMNOS").update(datos_modificados).eq("DNI", dni_buscar).execute()
-                        st.success("¡Datos actualizados correctamente en la base de datos!")
+                        st.success("¡Datos actualizados correctamente!")
             else:
                 st.error("No se encontró ningún alumno con ese DNI.")
         except Exception as e:
-            st.error(f"Error al buscar el alumno: {e}")
+            st.error(f"Error: {e}")
 
 # ==========================================
 # 4. DELETE: ELIMINAR REGISTRO
 # ==========================================
 elif opcion == "❌ Eliminar Registro (Delete)":
     st.subheader("Dar de Baja a un Alumno")
-    
     dni_eliminar = st.text_input("Ingrese el DNI del alumno que desea borrar:")
-    
     if dni_eliminar:
         try:
             response = supabase.table("ALUMNOS").select("*").eq("DNI", dni_eliminar).execute()
             if response.data:
                 alumno = response.data[0]
                 st.warning(f"¿Está seguro de eliminar a: **{alumno['NOMBRE']} {alumno['APELLIDO_PAT']}**?")
-                
-                # Casilla de confirmación obligatoria para la interfaz web
-                confirmar = st.checkbox("Sí, confirmo que deseo borrar este registro de forma permanente.")
-                btn_eliminar = st.button("Eliminar permanentemente", type="secondary")
-                
-                if btn_eliminar:
-                    if confirmar:
-                        supabase.table("ALUMNOS").delete().eq("DNI", dni_eliminar).execute()
-                        st.success("El alumno ha sido borrado de la base de datos.")
-                    else:
-                        st.error("Debe marcar la casilla de confirmación antes de eliminar.")
+                confirmar = st.checkbox("Sí, confirmo que deseo borrar este registro.")
+                btn_eliminar = st.button("Eliminar permanentemente")
+                if btn_eliminar and confirmar:
+                    supabase.table("ALUMNOS").delete().eq("DNI", dni_eliminar).execute()
+                    st.success("El alumno ha sido borrado de la base de datos.")
             else:
                 st.error("No se encontró ningún alumno con ese DNI.")
         except Exception as e:
-            st.error(f"Error al procesar la baja: {e}")
+            st.error(f"Error: {e}")
+
+# ==========================================
+# 5. PUNTO 4: VISUALIZACIONES GRÁFICAS
+# ==========================================
+elif opcion == "📊 Reportes y Gráficos (Punto 4)":
+    st.subheader("Estadísticas y Gráficos del Alumnado")
+    
+    try:
+        response = supabase.table("ALUMNOS").select("*").execute()
+        if response.data:
+            df = pd.DataFrame(response.data)
+            
+            # --- MUESTRA LOS DOS GRÁFICOS SOLICITADOS ---
+            
+            # 1. Gráfico de Pastel (Distribución por Sexo)
+            st.markdown("#### 🔄 Distribución por Sexo")
+            df_sexo = df['SEXO'].value_counts().reset_index()
+            df_sexo.columns = ['Sexo', 'Cantidad']
+            
+            fig_pie = px.pie(df_sexo, values='Cantidad', names='Sexo',
+                             color='Sexo', color_discrete_map={'M':'#3498db', 'F':'#e74c3c', 'O':'#9b59b6'})
+            st.plotly_chart(fig_pie, use_container_width=True)
+            
+            st.write("---")
+            
+            # 2. Gráfico de Barras (Cantidad de Alumnos por Edad)
+            st.markdown("#### 📊 Cantidad de Alumnos por Edad")
+            df_edad = df['EDAD'].value_counts().reset_index()
+            df_edad.columns = ['Edad', 'Cantidad']
+            df_edad = df_edad.sort_values(by='Edad')
+            
+            fig_bar = px.bar(df_edad, x='Edad', y='Cantidad', 
+                             labels={'Edad': 'Edad', 'Cantidad': 'Número de Alumnos'},
+                             color_discrete_sequence=['#4cb0a9'])
+            st.plotly_chart(fig_bar, use_container_width=True)
+            
+        else:
+            st.warning("No hay datos en la base de datos para generar los gráficos.")
+    except Exception as e:
+        st.error(f"Error al generar las visualizaciones: {e}")
