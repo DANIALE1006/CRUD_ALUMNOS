@@ -12,8 +12,8 @@ st.set_page_config(
 
 # 2. PROTOCOLO DE CONEXIÓN SEGURO CON SUPABASE (A TRAVÉS DE STREAMLIT SECRETS)
 try:
-    SUPABASE_URL = st.secrets["supabase"]["url"]
-    SUPABASE_KEY = st.secrets["supabase"]["key"]
+    SUPABASE_URL = "https://cwpispkqdphhiibaqnkb.supabase.co"
+    SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpcCI6IiIsInN1cGFiYXNlLmNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTcyOTYyOTgsImV4cCI6MjAzMjg3MjI5OH0.eyJUb2tlbl9SZWN1c2VkIjpmYWxzZX0"
     
     @st.cache_resource
     def conectar_base_datos():
